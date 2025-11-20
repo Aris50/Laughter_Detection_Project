@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Experiment</title>
+    <style>
+        /* --- STYLES --- */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* SCREENS */
+        #start-screen, #end-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #121212;
+            z-index: 10;
+        }
+
+        #player-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* NEW: FINAL TIME RESULT STYLE */
+        #final-time-display {
+            font-size: 2.2rem;
+            color: #4CAF50; /* Green for success */
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        /* HUD ELEMENTS (Right Side) */
+
+        /* TIMER STYLE (Top Right) */
+        #timer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+            z-index: 5;
+            display: none;
+        }
+
+        /* VIDEO TYPE LABEL (Under Timer) */
+        #video-type {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            width: 200px;
+            text-align: center;
+
+            font-size: 1.1rem;
+            font-weight: bold;
+            font-family: 'Segoe UI', sans-serif;
+            color: #FFD700;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+            z-index: 5;
+            display: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* BUTTON STYLE */
+        button {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            transition: background 0.3s;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
+        }
+        button:hover { background: #1976D2; }
+        button:disabled { background: #555; cursor: not-allowed; }
+
+        /* THANK YOU IMAGE */
+        #end-image {
+            max-width: 80%;
+            max-height: 60vh;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1 style="margin-bottom: 30px;">Experiment Ready</h1>
+        <button id="startBtn" onclick="beginExperiment()" disabled>Loading Videos...</button>
+    </div>
+
+    <div id="timer">00:00:00</div>
+    <div id="video-type">Category Loading...</div>
+
+    <div id="player-container">
+        <div id="player"></div>
+        <div id="no-interaction-overlay"></div>
+    </div>
+
+    <div id="end-screen" style="display: none;">
+        <img id="end-image" src="https://images.unsplash.com/photo-1499750310159-5254f4cc1575?q=80&w=1000&auto=format&fit=crop" alt="Thank You">
+        <h1>Thank you for participating</h1>
+        <h2 id="final-time-display"></h2>
+    </div>
+
+    <script>
+        // --- VIDEO LIST ---
+        const videoList = [
+            { id: 'YDbY9TTjv_w', text: 'AI-Powered Video' },
+            { id: 'iFkZKT00qdc', text: 'Prank Video' },
+            { id: '6KhtIa9tRhE', text: 'Human Fail Video' },
+            { id: '6_4FO_A9dHA', text: 'Trending Memes' },
+            { id: 'QN9QdlEbfkM', text: 'Reaction Humor' },
+            { id: 'YNaMdnDP0Z8', text: 'Animal Video' },
+            { id: 'YJkx3DIcYoQ', text: 'National Humor' }
+        ];
+        // ------------------
+
+        var player;
+        var currentVideoIndex = 0;
+        var timerInterval;
+        var startTime;
+
+        // Load YouTube API
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '100%',
+                width: '100%',
+                videoId: videoList[0].id,
+                playerVars: {
+                    'controls': 0,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'fs': 0,
+                    'disablekb': 1
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            document.getElementById("startBtn").innerText = "START EXPERIMENT";
+            document.getElementById("startBtn").disabled = false;
+            document.getElementById("video-type").innerText = videoList[0].text;
+        }
+
+        function beginExperiment() {
+            document.getElementById("start-screen").style.display = "none";
+
+            document.getElementById("player-container").style.display = "flex";
+            document.getElementById("timer").style.display = "block";
+            document.getElementById("video-type").style.display = "block";
+
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 100);
+
+            player.playVideo();
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === 0) {
+                playNextVideo();
+            }
+        }
+
+        function playNextVideo() {
+            currentVideoIndex++;
+
+            if (currentVideoIndex < videoList.length) {
+                player.loadVideoById(videoList[currentVideoIndex].id);
+                document.getElementById("video-type").innerText = videoList[currentVideoIndex].text;
+            } else {
+                endExperiment();
+            }
+        }
+
+        function endExperiment() {
+            // 1. CAPTURE THE FINAL TIME before clearing the interval
+            const finalTime = document.getElementById("timer").innerText;
+            clearInterval(timerInterval);
+
+            // 2. INSERT the final time into the end screen placeholder
+            document.getElementById("final-time-display").innerText = "Total Time: " + finalTime;
+
+            // 3. Hide running elements
+            document.getElementById("player-container").style.display = "none";
+            document.getElementById("timer").style.display = "none";
+            document.getElementById("video-type").style.display = "none";
+
+            // 4. Show the End Screen
+            document.getElementById("end-screen").style.display = "flex";
+        }
+
+        function updateTimer() {
+            let elapsed = Date.now() - startTime;
+
+            let milliseconds = Math.floor((elapsed % 1000) / 10);
+            let seconds = Math.floor((elapsed / 1000) % 60);
+            let minutes = Math.floor((elapsed / (1000 * 60)) % 60);
+
+            minutes = (minutes < 10) ? "0" + minutes : minutes;
+            seconds = (seconds < 10) ? "0" + seconds : seconds;
+            milliseconds = (milliseconds < 10) ? "0" + milliseconds : milliseconds;
+
+            document.getElementById("timer").innerText = minutes + ":" + seconds + ":" + milliseconds;
+        }
+    </script>
+</body>
+</html>
