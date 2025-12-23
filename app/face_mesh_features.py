@@ -8,6 +8,8 @@ import tensorflow as tf
 
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+from utils.geometry import dist, eye_aperture
+
 
 
 # ---------- Landmark indices ----------
@@ -33,17 +35,6 @@ RIGHT_EYE_RIGHT = 263
 ALPHA = 0.3
 BASELINE_FRAMES = 60  # ~2 seconds
 YAMNET_PATH = "models/yamnet.tflite"
-
-
-# ---------- Utility ----------
-def dist(p1, p2):
-    return float(np.linalg.norm(np.array(p1) - np.array(p2)))
-
-
-def eye_aperture(upper, lower, left, right):
-    v = dist(upper, lower)
-    h = dist(left, right)
-    return v / h if h > 1e-6 else 0.0
 
 
 # ---------- YAMNet setup ----------
