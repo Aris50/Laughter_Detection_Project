@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Experiment Player</title>
+    <style>
+        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        h1 { color: white; font-family: sans-serif; position: absolute; top: 20px; }
+    </style>
+</head>
+<body>
+    <div id="playlist-data" data-ids='{{ playlist | tojson | safe }}' style="display:none;"></div>
+
+    <div id="player"></div>
+
+    <script>
+        // Load YouTube IFrame API
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        var player;
+
+        // Retrieve data: Read the string from the HTML element and parse it back to an Array
+        var dataElement = document.getElementById('playlist-data');
+        var playlistIds = JSON.parse(dataElement.getAttribute('data-ids'));
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '100%',
+                width: '100%',
+                playerVars: { 'playsinline': 1, 'controls': 0, 'rel': 0 }, // 'controls': 0 hides play bar
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            event.target.loadPlaylist(playlistIds);
+        }
+
+        function onPlayerStateChange(event) {
+            // Get current video ID
+            var index = player.getPlaylistIndex();
+            var currentId = playlistIds[index];
+
+            if (event.data == YT.PlayerState.PLAYING) {
+                notifyServer(currentId, true, "playing");
+            } else if (event.data == YT.PlayerState.ENDED) {
+                // If this was the last video
+                if (index === playlistIds.length - 1) {
+                    notifyServer(currentId, false, "playlist_ended");
+                    document.body.innerHTML = "<h1 style='position:static'>Session Complete. Thank you.</h1>";
+                } else {
+                    notifyServer(currentId, false, "ended");
+                }
+            }
+        }
+
+        function notifyServer(vidId, isPlaying, statusMsg) {
+            fetch('/status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ video_id: vidId, playing: isPlaying, status: statusMsg })
+            });
+        }
+    </script>
+</body>
+</html>

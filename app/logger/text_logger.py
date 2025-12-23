@@ -15,11 +15,12 @@ class TextLogger:
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             f.write("# Amusement Detection Log\n")
             f.write(f"# Session start: {now}\n")
-            f.write("# time, au25, au12, au6, audio, smile, laughter, amusement\n")
+            f.write("# time, video_id, au25, au12, au6, audio, smile, laughter, amusement\n")
 
     def try_log(
         self,
         timestamp,
+        video_id,
         au25,
         au12,
         au6,
@@ -37,6 +38,7 @@ class TextLogger:
 
         line = (
             f"{time_str}, "
+            f"{video_id}, "
             f"{au25:.3f}, "
             f"{au12:.3f}, "
             f"{au6:.3f}, "

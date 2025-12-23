@@ -1,6 +1,6 @@
 import time
-
 import cv2
+import webbrowser
 import audio.yamnet_audio as yamnet_audio
 
 from audio.yamnet_audio import YamnetAudio
@@ -12,12 +12,28 @@ from ui.overlay import ScoreOverlay
 from ui.au_debug_overlay import AUDebugOverlay
 from logger.text_logger import TextLogger
 
+# --- New Imports for Playlist & Server ---
+from playlist.manager import get_random_playlist
+from web.server import start_background_server, set_playlist
 
 BASELINE_FRAMES = 60
 SMOOTHING_ALPHA = 0.3
 
 
 def main():
+    # ---------- 1. Prepare Content (Playlist) ----------
+    print("Generating playlist...")
+    playlist_ids = get_random_playlist()
+    set_playlist(playlist_ids)
+
+    # ---------- 2. Start Web Server (Background) ----------
+    print("Starting server...")
+    video_state = start_background_server()
+
+    # ---------- 3. Launch Browser for the User ----------
+    # Opens the local server in the default web browser
+    webbrowser.open("http://127.0.0.1:5000")
+
     # ---------- Audio ----------
     audio = YamnetAudio()
     audio.start()
@@ -42,16 +58,23 @@ def main():
     scorer = AmusementScorer()
 
     # ---------- Logging ----------
+    # Ensure your TextLogger is updated to accept 'video_id'
     logger = TextLogger(
         file_path="logs/log.txt",
         interval=0.2
     )
-    # ---------- UI ----------
+
+    # ---------- UI (Optional Debug) ----------
     overlay = ScoreOverlay()
     au_debug = AUDebugOverlay()
 
     # ---------- Main loop ----------
     while True:
+        # Check if playlist is finished
+        if video_state["finished"]:
+            print("Playlist finished. Ending session.")
+            break
+
         frame, landmarks, size = tracker.read()
 
         if frame is None:
@@ -73,6 +96,7 @@ def main():
             yamnet_audio.audio_laughter_score
         )
 
+        # Optional: Draw debug overlay (not shown to user, but useful for dev)
         au_debug.draw(
             frame,
             au25=smoothed_au25,
@@ -92,8 +116,13 @@ def main():
         # ---------- Logging ----------
         current_time = time.time()
 
+        # Get the ID of the video currently playing in the browser
+        current_video_id = video_state["current_video_id"]
+        # is_playing = video_state["is_playing"] # Use if you want to pause logging when paused
+
         logger.try_log(
             timestamp=current_time,
+            video_id=current_video_id,  # <-- Passed to logger
             au25=smoothed_au25,
             au12=smoothed_au12,
             au6=smoothed_au6,
@@ -104,15 +133,17 @@ def main():
         )
 
         # ---------- UI ----------
-        overlay.draw(
-            frame,
-            scores=scores,
-            audio_score=smoothed_audio
-        )
+        # We generally do NOT show the cv2 window to the user during the experiment,
+        # but you might want it for debugging.
 
-        cv2.imshow("Amusement Detection (Face + Audio)", frame)
-        if cv2.waitKey(1) & 0xFF == 27:
-            break
+        # overlay.draw(frame, scores=scores, audio_score=smoothed_audio)
+        # cv2.imshow("Amusement Detection Debug", frame)
+
+        # Use a small sleep to keep the loop from hogging CPU if imshow is off
+        # If showing window, use cv2.waitKey(1) instead
+        # if cv2.waitKey(1) & 0xFF == 27:
+        #    break
+        time.sleep(0.01)
 
     tracker.release()
     cv2.destroyAllWindows()
