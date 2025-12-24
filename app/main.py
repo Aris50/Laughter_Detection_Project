@@ -34,6 +34,17 @@ def main():
     # Opens the local server in the default web browser
     webbrowser.open("http://127.0.0.1:5000")
 
+    print("Waiting for participant registration...")
+    while not video_state["ready_to_start"]:
+        time.sleep(0.5)
+
+    # 4. Registration Complete - Initialize Logger
+    print(f"Participant registered: {video_state['participant']['name']}")
+
+    # Update logger initialization
+    logger = TextLogger(file_path="logs/log.txt")
+    logger.write_header(video_state["participant"])
+
     # ---------- Audio ----------
     audio = YamnetAudio()
     audio.start()
@@ -56,13 +67,6 @@ def main():
 
     # ---------- Scoring ----------
     scorer = AmusementScorer()
-
-    # ---------- Logging ----------
-    # Ensure your TextLogger is updated to accept 'video_id'
-    logger = TextLogger(
-        file_path="logs/log.txt",
-        interval=0.2
-    )
 
     # ---------- UI (Optional Debug) ----------
     overlay = ScoreOverlay()
@@ -113,24 +117,23 @@ def main():
             audio=smoothed_audio
         )
 
-        # ---------- Logging ----------
-        current_time = time.time()
-
         # Get the ID of the video currently playing in the browser
         current_video_id = video_state["current_video_id"]
-        # is_playing = video_state["is_playing"] # Use if you want to pause logging when paused
+        is_playing = video_state["is_playing"] # Use if you want to pause logging when paused
+        video_time = video_state["video_time"]
 
-        logger.try_log(
-            timestamp=current_time,
-            video_id=current_video_id,  # <-- Passed to logger
-            au25=smoothed_au25,
-            au12=smoothed_au12,
-            au6=smoothed_au6,
-            audio=smoothed_audio,
-            smile=scores.smile,
-            laughter=scores.laughter,
-            amusement=scores.amusement
-        )
+        if is_playing:
+            logger.try_log(
+                timestamp=video_time,
+                video_id=current_video_id,  # <-- Passed to logger
+                au25=smoothed_au25,
+                au12=smoothed_au12,
+                au6=smoothed_au6,
+                audio=smoothed_audio,
+                smile=scores.smile,
+                laughter=scores.laughter,
+                amusement=scores.amusement
+            )
 
         # ---------- UI ----------
         # We generally do NOT show the cv2 window to the user during the experiment,

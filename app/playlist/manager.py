@@ -5,10 +5,12 @@ import random
 VIDEO_DB = [
     {"id": "wqMQNIlzdGk", "duration": 24},
     {"id": "dGU5_UUalPA", "duration": 95},
+    {"id": "cib8ol7OVR4", "duration": 9},
+    {"id": "g5PtALFhFK8", "duration": 301},
 
 ]
 
-TARGET_DURATION = 7 * 60  # 420 seconds
+TARGET_DURATION = 7 * 60
 
 
 def get_random_playlist():

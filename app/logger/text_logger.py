@@ -2,39 +2,35 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-
 class TextLogger:
-    def __init__(self, file_path: str, interval: float = 0.2):
+    # We remove the immediate file creation from __init__
+    # because we don't have the user-name yet when we create the class
+    def __init__(self, file_path: str):
         self.file_path = Path(file_path)
-        self.interval = interval
-        self.last_log_time = 0.0
-
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
+        self.header_written = False
 
+    def write_header(self, participant_info):
+        """Writes the participant info and column headers."""
         with open(self.file_path, "w") as f:
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             f.write("# Amusement Detection Log\n")
-            f.write(f"# Session start: {now}\n")
-            f.write("# time, video_id, au25, au12, au6, audio, smile, laughter, amusement\n")
+            f.write(f"# Date: {now}\n")
+            f.write(f"# Subject: {participant_info['name']}\n")
+            f.write(f"# Age: {participant_info['age']}\n")
+            f.write(f"# Gender: {participant_info['gender']}\n")
+            f.write("-" * 30 + "\n")
+            f.write("time, video_id, au25, au12, au6, audio, smile, laughter, amusement\n")
+        self.header_written = True
 
-    def try_log(
-        self,
-        timestamp,
-        video_id,
-        au25,
-        au12,
-        au6,
-        audio,
-        smile,
-        laughter,
-        amusement
-    ):
-        if timestamp - self.last_log_time < self.interval:
+    def try_log(self, timestamp, video_id, au25, au12, au6, audio, smile, laughter, amusement):
+        if not self.header_written:
+            print("Warning: Log header not written yet. Skipping line.")
             return
 
-        self.last_log_time = timestamp
-
-        time_str = datetime.fromtimestamp(timestamp).strftime("%H:%M:%S.%f")[:-4]
+        minutes = int(timestamp // 60)
+        seconds = int(timestamp % 60)
+        time_str = f"{minutes:02d}:{seconds:02d}"
 
         line = (
             f"{time_str}, "

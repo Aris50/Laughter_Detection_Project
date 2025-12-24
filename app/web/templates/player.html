@@ -14,26 +14,36 @@
     <div id="player"></div>
 
     <script>
-        // Load YouTube IFrame API
+        // 1. Load YouTube IFrame API
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
+        // 2. Retrieve Playlist Data safely
         var player;
-
-        // Retrieve data: Read the string from the HTML element and parse it back to an Array
         var dataElement = document.getElementById('playlist-data');
         var playlistIds = JSON.parse(dataElement.getAttribute('data-ids'));
+        var timerInterval = null;
 
+        // 3. YouTube API Callback
+        // This function is called automatically by the YouTube API when it loads.
+        // It is NOT called by our code directly.
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%',
                 width: '100%',
-                playerVars: { 'playsinline': 1, 'controls': 0, 'rel': 0 }, // 'controls': 0 hides play bar
+                playerVars: {
+                    'playsinline': 1,
+                    'controls': 0,
+                    'rel': 0,
+                    // vital for localhost playback to work
+                    'origin': window.location.origin
+                },
                 events: {
                     'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
                 }
             });
         }
@@ -43,29 +53,56 @@
         }
 
         function onPlayerStateChange(event) {
-            // Get current video ID
             var index = player.getPlaylistIndex();
             var currentId = playlistIds[index];
 
             if (event.data == YT.PlayerState.PLAYING) {
-                notifyServer(currentId, true, "playing");
-            } else if (event.data == YT.PlayerState.ENDED) {
-                // If this was the last video
-                if (index === playlistIds.length - 1) {
-                    notifyServer(currentId, false, "playlist_ended");
-                    document.body.innerHTML = "<h1 style='position:static'>Session Complete. Thank you.</h1>";
-                } else {
-                    notifyServer(currentId, false, "ended");
-                }
+                startReportingTime(currentId);
+            } else {
+                stopReportingTime(currentId, event.data);
             }
         }
 
-        function notifyServer(vidId, isPlaying, statusMsg) {
+        function startReportingTime(vidId) {
+            if (timerInterval) clearInterval(timerInterval);
+
+            // Send updates every 200ms
+            timerInterval = setInterval(function() {
+                var currentTime = player.getCurrentTime();
+                notifyServer(vidId, true, "playing", currentTime);
+            }, 200);
+        }
+
+        function stopReportingTime(vidId, state) {
+            if (timerInterval) clearInterval(timerInterval);
+
+            var statusMsg = (state == YT.PlayerState.ENDED) ? "ended" : "paused";
+
+            // Check if entire playlist is done
+            if (state == YT.PlayerState.ENDED && player.getPlaylistIndex() === playlistIds.length - 1) {
+                statusMsg = "playlist_ended";
+                document.body.innerHTML = "<h1>Session Complete. Thank you.</h1>";
+            }
+
+            // Send final "stopped" status
+            notifyServer(vidId, false, statusMsg, player.getCurrentTime());
+        }
+
+        function notifyServer(vidId, isPlaying, statusMsg, time) {
             fetch('/status', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ video_id: vidId, playing: isPlaying, status: statusMsg })
+                body: JSON.stringify({
+                    video_id: vidId,
+                    playing: isPlaying,
+                    status: statusMsg,
+                    timestamp: time
+                })
             });
+        }
+
+        function onPlayerError(event) {
+            console.error("YouTube Player Error Code:", event.data);
         }
     </script>
 </body>
