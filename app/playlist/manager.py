@@ -1,32 +1,26 @@
 import random
-
-# Mock Database: ID and Duration (in seconds)
-# You can replace this later with a real SQL query
-VIDEO_DB = [
-    {"id": "wqMQNIlzdGk", "duration": 24},
-    {"id": "dGU5_UUalPA", "duration": 95},
-    {"id": "cib8ol7OVR4", "duration": 9},
-    {"id": "g5PtALFhFK8", "duration": 301},
-
-]
+from persistence.db import SessionLocal
+from persistence.models import Video
 
 TARGET_DURATION = 7 * 60
-
+MAX_OVERAGE = 30  # allow +30s
 
 def get_random_playlist():
-    """
-    Selects videos randomly until total duration is ~7 mins.
-    Returns a list of video IDs.
-    """
-    pool = list(VIDEO_DB)
+    db = SessionLocal()
+    try:
+        videos = db.query(Video).all()
+        pool = [{"id": v.vid, "duration": v.duration} for v in videos]
+    finally:
+        db.close()
+
     random.shuffle(pool)
 
     playlist = []
-    current_total = 0
+    total = 0
 
-    for video in pool:
-        if current_total + video["duration"] <= TARGET_DURATION + 30:
-            playlist.append(video["id"])
-            current_total += video["duration"]
+    for v in pool:
+        if total + v["duration"] <= TARGET_DURATION + MAX_OVERAGE:
+            playlist.append(v["id"])
+            total += v["duration"]
 
     return playlist
