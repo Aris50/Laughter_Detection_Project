@@ -3,6 +3,7 @@ import cv2
 import webbrowser
 import audio.yamnet_audio as yamnet_audio
 
+
 from persistence.repo import (
     get_or_create_subject,
     create_experiment,
@@ -85,8 +86,8 @@ def main():
     scorer = AmusementScorer()
 
     # ---------- UI (Debug) ----------
-    overlay = ScoreOverlay()
-    au_debug = AUDebugOverlay()
+    #overlay = ScoreOverlay()
+    #au_debug = AUDebugOverlay()
 
     # ---------- DB aggregation state ----------
     last_video_id = None
