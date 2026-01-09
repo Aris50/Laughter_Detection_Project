@@ -7,11 +7,6 @@ from persistence.models import Video
 TARGET_DURATION = 7 * 60        # 7 minutes
 MAX_OVERAGE = 30               # allow +30s
 
-# REVIEWER SPLIT
-# True  -> odd IDs
-# False -> even IDs
-USE_ODD_IDS = True
-
 # =========================================
 
 def get_random_playlist():
@@ -21,12 +16,6 @@ def get_random_playlist():
             db.query(Video)
             .filter(Video.status == "approved")
         )
-
-        # Even / odd split (SQLite compatible)
-        if USE_ODD_IDS:
-            query = query.filter(Video.vid % 2 == 1)
-        else:
-            query = query.filter(Video.vid % 2 == 0)
 
         videos = query.all()
 

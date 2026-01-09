@@ -24,6 +24,11 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
 DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app.db"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "affectivecomputing2025")
 
+# IMPORTANT:
+# Use rowid parity for splitting work between two reviewers.
+# 1 = odd rowid, 0 = even rowid
+ADMIN_ROWID_PARITY = 1  # <-- YOU keep 1 (odd). Your friend sets this to 0 (even).
+
 # Shared state for experiment
 STATE = {
     "current_video_id": "WAITING",
@@ -35,6 +40,7 @@ STATE = {
 }
 
 # Admin review pointer (single-user lab usage)
+# (kept; no longer required for random selection, but not harmful)
 ADMIN_STATE = {
     "last_rowid": 0
 }
@@ -54,21 +60,33 @@ def get_db():
     return conn
 
 
-def admin_get_next_video(after_rowid: int, only_na: bool):
-    where_status = "AND status = 'n/a'" if only_na else ""
+def admin_get_next_video(*, after_rowid: int = 0, only_na: bool = True):
+    """
+    Returns ONE random video for admin review.
+    - Splits workload by rowid parity (odd/even) using ADMIN_ROWID_PARITY.
+    - If only_na=True: returns only rows needing review (status is NULL or 'n/a')
+    - after_rowid kept for compatibility, but intentionally not used with RANDOM selection.
+    """
+    if only_na:
+        where_status = "AND (status IS NULL OR status = 'n/a')"
+    else:
+        where_status = ""
+
+    # Key fix: DO NOT cast YouTube vid to integer.
+    # Use rowid parity for odd/even split.
+    query = f"""
+        SELECT rowid, vid, link, duration, status
+        FROM Video
+        WHERE vid IS NOT NULL AND TRIM(vid) <> ''
+          AND (rowid % 2) = ?
+          {where_status}
+        ORDER BY RANDOM()
+        LIMIT 1
+    """
+
     with get_db() as conn:
-        row = conn.execute(
-            f"""
-            SELECT rowid, vid, link, duration, status
-            FROM Video
-            WHERE rowid > ?
-              AND vid IS NOT NULL AND TRIM(vid) <> ''
-              {where_status}
-            ORDER BY rowid ASC
-            LIMIT 1
-            """,
-            (after_rowid,)
-        ).fetchone()
+        row = conn.execute(query, (ADMIN_ROWID_PARITY,)).fetchone()
+
     return row
 
 
@@ -150,7 +168,7 @@ def admin_login_post():
         return "Unauthorized", 401
 
     session["is_admin"] = True
-    ADMIN_STATE["last_rowid"] = 0
+    ADMIN_STATE["last_rowid"] = 0  # kept
 
     # Default: review only n/a videos
     return redirect("/admin/review?only_na=1")
@@ -162,6 +180,8 @@ def admin_review():
         return redirect("/admin")
 
     only_na = request.args.get("only_na", "1") == "1"
+
+    # Random selection across ALL matching videos (by rowid parity + status filter)
     row = admin_get_next_video(after_rowid=ADMIN_STATE["last_rowid"], only_na=only_na)
 
     if row is None:
@@ -211,6 +231,7 @@ def admin_review():
                 rowid=<b>{current_rowid}</b> |
                 vid=<b>{vid}</b> |
                 status=<b>{status}</b> |
+                parity=<b>{ADMIN_ROWID_PARITY}</b> |
                 <a href="/admin/review?only_na={'0' if only_na else '1'}">toggle only_na</a>
             </div>
         </div>
@@ -267,7 +288,7 @@ def admin_set_status():
 
     admin_update_status(vid, status)
 
-    # advance pointer so we keep moving forward
+    # (kept) update pointer even though selection is random; harmless
     ADMIN_STATE["last_rowid"] = int(rowid)
 
     return jsonify({"ok": True})
