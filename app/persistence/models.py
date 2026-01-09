@@ -30,6 +30,7 @@ class Video(Base):
     vid = Column(String(32), primary_key=True)  # YouTube ID (e.g., "wqMQNIlzdGk")
     link = Column(String(2048), nullable=False)
     duration = Column(Integer, nullable=False)
+    status = Column(String, nullable=False, default="n/a")
 
     categories = relationship("Category", secondary=video_category, back_populates="videos")
 
