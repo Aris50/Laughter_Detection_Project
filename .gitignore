@@ -1,3 +1,11 @@
 
 .idea/
 *.iml
+venv/
+__pycache__/
+*.pyc
+app.db
+*.ndjson
+*.csv
+*.sql
+youtube_seed.checkpoint.json
