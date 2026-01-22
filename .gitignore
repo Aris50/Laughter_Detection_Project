@@ -2,6 +2,8 @@
 .idea/
 *.iml
 venv/
+.venv/
+env/
 __pycache__/
 *.pyc
 app.db
@@ -9,3 +11,6 @@ app.db
 *.csv
 *.sql
 youtube_seed.checkpoint.json
+*.db
+logs/
+.DS_Store
