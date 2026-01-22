@@ -4,6 +4,9 @@
 venv/
 .venv/
 env/
+*/venv/
+*/.venv/
+*/env/
 __pycache__/
 *.pyc
 app.db
