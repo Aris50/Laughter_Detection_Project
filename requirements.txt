@@ -1,0 +1,9 @@
+sqlalchemy
+opencv-python
+tensorflow>=2.13.0
+numpy
+flask
+pyyaml
+mediapipe
+soundfile
+scipy

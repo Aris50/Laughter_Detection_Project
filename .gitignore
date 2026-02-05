@@ -1,3 +1,19 @@
 
 .idea/
 *.iml
+venv/
+.venv/
+env/
+*/venv/
+*/.venv/
+*/env/
+__pycache__/
+*.pyc
+app.db
+*.ndjson
+*.csv
+*.sql
+youtube_seed.checkpoint.json
+*.db
+logs/
+.DS_Store
