@@ -39,7 +39,7 @@ def main():
     video_state = start_background_server()
 
     # ---------- 3. Launch Browser for the User ----------
-    webbrowser.open("http://127.0.0.1:5000")
+    webbrowser.open("http://127.0.0.1:5050")
 
     print("Waiting for participant registration...")
     while not video_state["ready_to_start"]:

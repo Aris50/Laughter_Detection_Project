@@ -296,7 +296,7 @@ def admin_set_status():
 
 # ===== Server startup =====
 def run_server():
-    app.run(port=5000, use_reloader=False)
+    app.run(port=5050, use_reloader=False)
 
 
 def start_background_server():
